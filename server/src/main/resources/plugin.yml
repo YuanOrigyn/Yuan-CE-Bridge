@@ -1,0 +1,16 @@
+name: Yuan-CE-Bridge
+version: '${version}'
+main: com.ceclientbridge.CraftEngineClientBridge
+authors: [Yuan]
+description: Syncs CraftEngine item/block appearances to the companion Fabric client mod
+api-version: '1.20'
+softdepend:
+  - CraftEngine
+commands:
+  cebridge:
+    description: Manage CraftEngine client-bridge sync
+    usage: /cebridge <resync|reload|info|dump>
+    permission: ceclientbridge.admin
+permissions:
+  ceclientbridge.admin:
+    default: op

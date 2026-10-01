@@ -1,0 +1,32 @@
+{
+  "schemaVersion": 1,
+  "id": "${mod_id}",
+  "version": "${mod_version}",
+  "name": "Yuan-CE-Bridge",
+  "authors": [
+    "Yuan"
+  ],
+  "description": "Shows CraftEngine's custom items/blocks as their true identity in JEI and Jade.",
+  "environment": "client",
+  "entrypoints": {
+    "client": [
+      "com.ceclientmod.CraftEngineClientModInit"
+    ],
+    "jade": [
+      "com.ceclientmod.jade.CeJadePlugin"
+    ],
+    "jei_mod_plugin": [
+      "com.ceclientmod.jei.CeJeiPlugin"
+    ]
+  },
+  "depends": {
+    "fabricloader": ">=${loader_version}",
+    "fabric-api": "*",
+    "minecraft": "${minecraft_dependency}",
+    "java": ">=${java_version}"
+  },
+  "suggests": {
+    "jei": "*",
+    "jade": "*"
+  }
+}

@@ -1,0 +1,24 @@
+# Gradle
+.gradle/
+build/
+
+# IDE
+.idea/
+*.iml
+*.ipr
+*.iws
+.vscode/
+out/
+
+# Keep local library directories ignored except for the bundled community CraftEngine build dependency.
+libs/
+!server/libs/
+server/libs/*
+!server/libs/craft-engine-paper-plugin-26.7.4.jar
+
+# Claude Code local config
+.claude/
+
+# OS
+.DS_Store
+Thumbs.db

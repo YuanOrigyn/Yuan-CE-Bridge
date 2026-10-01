@@ -1,0 +1,41 @@
+modLoader = "javafml"
+loaderVersion = "[11,)"
+license = "MIT"
+
+[[mods]]
+modId = "ceclientmod"
+version = "${mod_version}"
+displayName = "Yuan-CE-Bridge"
+authors = "Yuan"
+description = '''
+Shows CraftEngine's custom items, blocks and recipes as their true identity in JEI and Jade.
+Requires the matching Yuan-CE-Bridge Paper plugin on the server.
+'''
+
+[[dependencies.ceclientmod]]
+modId = "neoforge"
+type = "required"
+versionRange = "[26.1,)"
+ordering = "NONE"
+side = "CLIENT"
+
+[[dependencies.ceclientmod]]
+modId = "minecraft"
+type = "required"
+versionRange = "${minecraft_dependency}"
+ordering = "NONE"
+side = "CLIENT"
+
+[[dependencies.ceclientmod]]
+modId = "jei"
+type = "optional"
+versionRange = "*"
+ordering = "NONE"
+side = "CLIENT"
+
+[[dependencies.ceclientmod]]
+modId = "jade"
+type = "optional"
+versionRange = "*"
+ordering = "NONE"
+side = "CLIENT"

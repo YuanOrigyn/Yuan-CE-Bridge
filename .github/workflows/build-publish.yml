@@ -1,0 +1,221 @@
+name: Build and publish
+
+on:
+  push:
+    branches:
+      - main
+    tags:
+      - "v*"
+  workflow_dispatch:
+
+concurrency:
+  group: yuan-ce-bridge-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: Build Yuan-CE-Bridge artifacts
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    env:
+      GRADLE_OPTS: -Dorg.gradle.daemon=false -Dorg.gradle.parallel=true
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+
+      - name: Install Java 21
+        id: java21
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+
+      - name: Install Java 25
+        id: java25
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "25"
+
+      - name: Use Java 21 for Gradle and Java 25 for toolchains
+        shell: bash
+        run: |
+          echo "JAVA_HOME=${{ steps.java21.outputs.path }}" >> "$GITHUB_ENV"
+          echo "GRADLE_OPTS=${GRADLE_OPTS} -Dorg.gradle.java.installations.paths=${{ steps.java25.outputs.path }}" >> "$GITHUB_ENV"
+
+      - name: Download client compile dependencies
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          download_sha512() {
+            local url="$1"
+            local output="$2"
+            local expected="$3"
+            curl --fail --location --silent --show-error --retry 3 "$url" --output "$output"
+            printf '%s  %s\n' "$expected" "$output" | sha512sum --check --status -
+          }
+
+          # Modrinth publishes extra JEI/Jade builds at the same Minecraft version without changing the
+          # file name, and the CDN URL embeds an upload id we would have to re-pin every time. Resolve
+          # the URL from the exact file name instead - the sha512 check below still pins the bytes.
+          download_modrinth_file() {
+            local project="$1"
+            local filename="$2"
+            local output="$3"
+            local expected="$4"
+            local url
+            url=$(curl --fail --location --silent --show-error --retry 3 \
+              -H "User-Agent: yuan-ce-bridge-build" \
+              "https://api.modrinth.com/v2/project/${project}/version" \
+              | jq -r --arg f "$filename" '[.[] | .files[] | select(.filename == $f)][0].url')
+            if [[ -z "$url" || "$url" == "null" ]]; then
+              echo "Could not resolve $filename from Modrinth project $project" >&2
+              exit 1
+            fi
+            download_sha512 "$url" "$output" "$expected"
+          }
+
+          mkdir -p client/libs
+          download_sha512 \
+            "https://maven.fabricmc.net/net/fabricmc/fabric-loader/0.19.3/fabric-loader-0.19.3.jar" \
+            "client/libs/fabric-loader-0.19.3.jar" \
+            "39EDB4DBA380AC942C02E6CF385B98E9C5F0E84E7FD00F9262BBA2197187FDA8825AE025F8865D3F047BCDF166C0367266FB1BBFCB80D243266191F677BD8EF3"
+          download_sha512 \
+            "https://cdn.modrinth.com/data/u6dRKJwZ/versions/zE4WIFwL/jei-26.2-fabric-30.16.0.131.jar" \
+            "client/libs/jei-26.2-fabric-30.16.0.131.jar" \
+            "B7639338159A82DF92AF833C29B826502EFC019896861B57054691BD8637D17482B023144E5BA83BFB711D01F0FC49FDC89196FBFFDC6CD5AFB950C2A0C4C01E"
+          download_sha512 \
+            "https://cdn.modrinth.com/data/nvQzSEkH/versions/JB4B8a9g/Jade-mc26.2-Fabric-26.2.10.jar" \
+            "client/libs/Jade-mc26.2-Fabric-26.2.10.jar" \
+            "5964E943CD56A4BA9FDF6BE4ED351E3B57811CE3026714348590270087F6D198C64D06B5EFEA7968752CBB2A3A7FBA8974E014CA7573608930C87365422215EC"
+          download_modrinth_file \
+            "u6dRKJwZ" \
+            "jei-26.1.2-fabric-29.40.0.101.jar" \
+            "client/libs/jei-26.1.2-fabric-29.40.0.101.jar" \
+            "4CF994F76B0891CE9AFF0FC78889A09F804D65979475C10F31FF4CE7CA3443C91D895605C3D544313C7A4E1F9D2C8337108BF4E928DF86E03A45D9624CEDAA20"
+          download_modrinth_file \
+            "nvQzSEkH" \
+            "Jade-mc26.1-Fabric-26.1.9.jar" \
+            "client/libs/Jade-mc26.1-Fabric-26.1.9.jar" \
+            "6B38AD22B3888057C619AEB89EAA78ADE68C03DBBA8D3758C65B32AD34471378CF222DC1B9108C3107D9739EEEB385476E760C14CCD68AFDE754660F63CEDCCE"
+
+      - name: Verify bundled CraftEngine compile dependency
+        shell: bash
+        run: |
+          set -euo pipefail
+          printf '%s  %s\n' "8771A23713BEABCFEFA46DD0B4C768D7EB1112DBDE803243C972C08EC157D406" "server/libs/craft-engine-paper-plugin-26.7.4.jar" \
+            | sha256sum --check --status -
+
+      - name: Run protocol tests
+        working-directory: client
+        shell: bash
+        run: bash ./gradlew --no-daemon -p ../protocol protocolTest handshakeTest
+
+      - name: Build Fabric 26.x client
+        working-directory: client
+        shell: bash
+        run: bash ./gradlew --no-daemon clean build -Ptarget=26.x
+
+      - name: Build Fabric 26.1 client
+        working-directory: client
+        shell: bash
+        run: bash ./gradlew --no-daemon build -Ptarget=26.1
+
+      - name: Build Paper 26.x plugin with shadowJar
+        working-directory: server
+        shell: bash
+        run: bash ./gradlew --no-daemon clean shadowJar -Ptarget=26.x
+
+      - name: Build Paper 26.1 plugin with shadowJar
+        working-directory: server
+        shell: bash
+        run: bash ./gradlew --no-daemon shadowJar -Ptarget=26.1
+
+      # The NeoForge client (client-neoforge/) is deliberately not built here. It compiles against
+      # NeoForge's patched Minecraft artifact, which is generated by the NeoForge installer and has no
+      # stable public URL to pin, so CI cannot fetch it reproducibly. Build it locally instead:
+      #   cd client && ./gradlew -p ../client-neoforge clean build -Ptarget=26.1
+      # after filling client-neoforge/libs/ - see README.md for the exact jar list.
+
+      - name: Stage release files and checksums
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p dist
+          cp server/build/libs/Yuan-CE-Bridge-1.3.7-26.x.jar dist/
+          cp server/build/libs/Yuan-CE-Bridge-1.3.7-26.1.jar dist/
+          cp client/build/libs/Yuan-CE-Bridge-26.x-1.2.1.jar dist/
+          cp client/build/libs/Yuan-CE-Bridge-26.1-1.2.1.jar dist/
+          sha256sum dist/*.jar > dist/SHA256SUMS.txt
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: yuan-ce-bridge-${{ github.sha }}
+          path: dist
+          if-no-files-found: error
+          retention-days: 14
+
+  release:
+    name: Publish plugin and mod releases
+    if: github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v')
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Download build artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: yuan-ce-bridge-${{ github.sha }}
+          path: dist
+
+      - name: Publish GitHub release assets
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+
+          required_assets=(
+            "Yuan-CE-Bridge-1.3.7-26.x.jar"
+            "Yuan-CE-Bridge-1.3.7-26.1.jar"
+            "Yuan-CE-Bridge-26.x-1.2.1.jar"
+            "Yuan-CE-Bridge-26.1-1.2.1.jar"
+            "SHA256SUMS.txt"
+          )
+          for asset in "${required_assets[@]}"; do
+            test -f "dist/$asset" || {
+              echo "Missing release asset: dist/$asset" >&2
+              exit 1
+            }
+          done
+
+          if [[ "$GITHUB_REF" == "refs/heads/main" ]]; then
+            release_tag="latest"
+            release_title="Latest main build"
+            release_notes="Automatic build from main commit $GITHUB_SHA."
+            release_create_flags=(--prerelease --latest=false)
+          else
+            release_tag="$GITHUB_REF_NAME"
+            release_title="$GITHUB_REF_NAME"
+            release_notes="Build artifacts for $GITHUB_REF_NAME."
+            release_create_flags=(--verify-tag --generate-notes --latest=false)
+          fi
+
+          if gh release view "$release_tag" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            gh release upload "$release_tag" --repo "$GITHUB_REPOSITORY" dist/* --clobber
+            if [[ "$release_tag" == "latest" ]]; then
+              gh api --method PATCH \
+                "repos/${GITHUB_REPOSITORY}/git/refs/tags/${release_tag}" \
+                -f "sha=${GITHUB_SHA}" -F "force=true" >/dev/null
+              gh release edit "$release_tag" --repo "$GITHUB_REPOSITORY" \
+                --target "$GITHUB_SHA" --title "$release_title" --notes "$release_notes" --prerelease --latest=false
+            fi
+          else
+            gh release create "$release_tag" --repo "$GITHUB_REPOSITORY" \
+              --target "$GITHUB_SHA" --title "$release_title" --notes "$release_notes" \
+              "${release_create_flags[@]}" dist/*
+          fi

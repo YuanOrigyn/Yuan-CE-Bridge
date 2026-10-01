@@ -1,0 +1,1 @@
+rootProject.name = "Yuan-CE-Bridge-NeoForge"
