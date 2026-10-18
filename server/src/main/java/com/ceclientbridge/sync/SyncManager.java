@@ -91,7 +91,7 @@ public final class SyncManager {
      */
     public byte[] jadeIconAppearance(Key blockId) {
         if (blockId == null) return null;
-        ItemStack stack = blockIconStacks.get(blockId);
+        ItemStack stack = jadeIconStack(blockId);
         if (stack == null) return null;
         try {
             return encodeItemAppearance(stack, blockId.asString());
@@ -99,6 +99,15 @@ public final class SyncManager {
             plugin.getLogger().log(Level.WARNING, "Failed to encode a Jade icon for CraftEngine block '" + blockId + "'", t);
             return null;
         }
+    }
+
+    /**
+     * Returns the cached client-bound icon for one CraftEngine block; callers must clone it before
+     * changing item metadata.
+     */
+    public ItemStack jadeIconStack(Key blockId) {
+        if (blockId == null) return null;
+        return blockIconStacks.get(blockId);
     }
 
     /**

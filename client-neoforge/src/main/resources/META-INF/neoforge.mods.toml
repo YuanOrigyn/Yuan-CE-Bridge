@@ -15,7 +15,7 @@ Requires the matching Yuan-CE-Bridge Paper plugin on the server.
 [[dependencies.ceclientmod]]
 modId = "neoforge"
 type = "required"
-versionRange = "[26.1,)"
+versionRange = "${neoforge_dependency}"
 ordering = "NONE"
 side = "CLIENT"
 

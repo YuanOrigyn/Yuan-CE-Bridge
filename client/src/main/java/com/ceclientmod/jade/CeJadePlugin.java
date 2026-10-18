@@ -45,9 +45,13 @@ public final class CeJadePlugin implements IWailaPlugin {
             if (!(accessor instanceof BlockAccessor blockAccessor)) return;
             CeClientRegistries.blockIcons()
                     .iconFor(blockAccessor.getLevel().dimension(), blockAccessor.getPosition(), blockAccessor.getBlockState())
-                    .ifPresent(stack -> box.getTooltip().replace(
-                            JadeIds.CORE_OBJECT_NAME,
-                            IThemeHelper.get().title(stack.getHoverName())));
+                    .ifPresent(stack -> {
+                        box.getTooltip().remove(JadeIds.MC_NOTE_BLOCK);
+                        box.getTooltip().remove(JadeIds.MC_REDSTONE);
+                        box.getTooltip().replace(
+                                JadeIds.CORE_OBJECT_NAME,
+                                IThemeHelper.get().title(stack.getHoverName()));
+                    });
         });
     }
 

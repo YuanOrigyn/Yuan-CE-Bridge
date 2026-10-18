@@ -37,7 +37,7 @@ public final class CeBlockIconRegistry {
     /** How long a probed answer is trusted. Long enough that walking through a farm re-uses the answers
      *  already collected instead of asking again for every block the crosshair crosses, short enough that a
      *  block swapped for one sharing its visual state cannot keep showing the old block's icon forever. */
-    private static final long PROBE_TTL_NANOS = 30_000_000_000L;
+    private static final long PROBE_TTL_NANOS = 2_000_000_000L;
     private static final long PROBE_TIMEOUT_NANOS = 2_000_000_000L;
     /** Position answers held at once; far past anything a player can sweep a crosshair over. */
     private static final int MAX_PROBED_POSITIONS = 4096;

@@ -9,6 +9,7 @@ import com.ceclientbridge.protocol.BridgeHelloCodec;
 import com.ceclientbridge.protocol.JadeIconProtocol;
 import com.ceclientbridge.protocol.FixedWindowRateLimiter;
 import com.ceclientbridge.recipe.RecipeSyncListener;
+import com.ceclientbridge.sync.CauldronIconResolver;
 import com.ceclientbridge.sync.MooncakeIconResolver;
 import com.ceclientbridge.sync.SyncManager;
 import com.ceclientbridge.version.BridgeServerTarget;
@@ -42,6 +43,7 @@ public final class CraftEngineClientBridge extends JavaPlugin implements Listene
     private SyncManager syncManager;
     /** Answers for blocks whose items live in their block entity rather than in the block state. */
     private MooncakeIconResolver mooncakeIcons;
+    private final CauldronIconResolver cauldronIcons = new CauldronIconResolver();
     private final BridgeCompatibilityGate compatibilityGate = new BridgeCompatibilityGate();
     private final java.util.Map<java.util.UUID, FixedWindowRateLimiter> furnitureProbeLimits = new java.util.HashMap<>();
     private final java.util.Map<java.util.UUID, FixedWindowRateLimiter> blockProbeLimits = new java.util.HashMap<>();
@@ -248,6 +250,12 @@ public final class CraftEngineClientBridge extends JavaPlugin implements Listene
             if (fromBlockEntity != null) {
                 return new JadeIconProtocol.BlockProbeIcon(probe.requestId(),
                         fromBlockEntity.itemId().asString(), fromBlockEntity.appearance());
+            }
+            ItemStack blockIcon = syncManager.jadeIconStack(blockId);
+            byte[] namedAppearance = cauldronIcons.appearance(blockId, state, blockIcon);
+            if (namedAppearance != null) {
+                return new JadeIconProtocol.BlockProbeIcon(
+                        probe.requestId(), blockId.asString(), namedAppearance);
             }
             byte[] appearance = syncManager.jadeIconAppearance(blockId);
             if (appearance == null) {

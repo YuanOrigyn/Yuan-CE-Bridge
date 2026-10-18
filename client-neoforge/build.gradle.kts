@@ -7,14 +7,21 @@ data class NeoForgeProfile(
     val minecraftVersion: String,
     val neoForgeVersion: String,
     val minecraftDependency: String,
+    val neoForgeDependency: String,
     val javaVersion: Int
 )
 
-// The NeoForge build reuses the exact client sources; only the entrypoint differs. Adding a newer 26.x
-// NeoForge is a one-line change here (or override -PneoForgeVersion= / -PminecraftVersion=).
+// The NeoForge build reuses the exact client sources; only the entrypoint differs.
 val profiles = mapOf(
+    // One 26.x artifact, compiled against the available NeoForge 26.1.2 API and declared to cover
+    // the whole 26.x family, including newer NeoForge releases whose shared APIs remain compatible.
+    "26.x" to NeoForgeProfile(
+        "26.x", "26.1.2", "26.1.2.109", "[26.1,<27)", "[26.1,<27)", 25
+    ),
     // Minecraft 26.1.2, NeoForge 26.1.2.109.
-    "26.1" to NeoForgeProfile("26.1", "26.1.2", "26.1.2.109", "[26.1,26.2)", 25)
+    "26.1" to NeoForgeProfile(
+        "26.1", "26.1.2", "26.1.2.109", "[26.1,26.2)", "[26.1,26.2)", 25
+    )
 )
 
 val target = providers.gradleProperty("target")
@@ -27,6 +34,7 @@ val profile = profiles[target] ?: throw GradleException(
 val minecraftVersion = providers.gradleProperty("minecraftVersion").orElse(profile.minecraftVersion).get()
 val neoForgeVersion = providers.gradleProperty("neoForgeVersion").orElse(profile.neoForgeVersion).get()
 val minecraftDependency = providers.gradleProperty("minecraftDependency").orElse(profile.minecraftDependency).get()
+val neoForgeDependency = providers.gradleProperty("neoForgeDependency").orElse(profile.neoForgeDependency).get()
 
 val modVersion: String by project
 val mavenGroup: String by project
@@ -70,6 +78,7 @@ tasks {
             "minecraft_version" to minecraftVersion,
             "neoForge_version" to neoForgeVersion,
             "minecraft_dependency" to minecraftDependency,
+            "neoforge_dependency" to neoForgeDependency,
             "bridge_target" to profile.targetFamily,
             "java_version" to profile.javaVersion
         )

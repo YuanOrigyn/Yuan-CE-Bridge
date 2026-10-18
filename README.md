@@ -13,7 +13,7 @@ CraftEngine 通过 `item_model` 等数据组件在**服务端到客户端的封�
 
 - **`server/`**（Paper 插件，产物 `Yuan-CE-Bridge-<版本>-<目标>.jar`）：读取 CraftEngine 的物品/方块/合成台/锻造台配方数据，还原出客户端实际会渲染的外观（`item_model`、自定义名称等），通过插件消息通道把这些"精确外观"数据发给客户端；同时手动重建并重发原版配方同步。
 - **`client/`**（Fabric 模组，产物 `Yuan-CE-Bridge-26.x-<版本>.jar`）：接收上述数据，喂给 JEI 的物品列表和自定义 JEI 展示分类（合成台复用 JEI 自带展示能力加精确材质覆盖；锻造台由于 JEI 没有对应的精确展示接口，改为完全自定义的 `IRecipeCategory` 手动摆放四个格子），并给 Jade 提供 CraftEngine 方块和家具的真实图标。该目录用同一份源码构建 26.x（基线 Minecraft 26.2）和 26.1（基线 Minecraft 26.1.2）两个客户端。
-- **`client-neoforge/`**（NeoForge 模组，产物 `Yuan-CE-Bridge-neoforge-26.1-<版本>.jar`）：把同一份客户端源码编译到 NeoForge（基线 NeoForge 26.1.2.109 / Minecraft 26.1.2）。入口点、通道注册、探针外发换成 NeoForge API，缓存、Jade/JEI 集成与 Fabric 版完全共用同一份源码。
+- **`client-neoforge/`**（NeoForge 模组，产物 `Yuan-CE-Bridge-neoforge-<目标>-<版本>.jar`）：把同一份客户端源码编译到 NeoForge，提供 26.x 与 26.1 两个目标。入口点、通道注册、探针外发换成 NeoForge API，缓存、Jade/JEI 集成与 Fabric 版完全共用同一份源码。
 
 ## Jade 26.x / 26.1 如何显示 CraftEngine 方块和家具
 
@@ -33,6 +33,7 @@ CraftEngine 通过 `item_model` 等数据组件在**服务端到客户端的封�
 - 服务端：Paper/ASPaper，Minecraft 26.2 或 26.1.2，已安装并加载与服务器版本匹配的 [CraftEngine](https://craftengine.net/)。
 - 26.x 客户端：Fabric Loader 0.19.3，Fabric API 0.155.0+26.2、JEI 30.16.0.131、Jade 26.2.10，Java 25。
 - 26.1 客户端：同一份源码编译，目标 Minecraft 26.1.2（版本范围 >=26.1 <26.2），Fabric Loader 0.19.3、Fabric API 0.155.3+26.1.2、JEI 29.40.0.101、Jade 26.1.9，Java 25。
+- NeoForge 26.x 客户端：以本地 NeoForge 26.1.2.109 / Minecraft 26.1.2 API 为编译基线，模组元数据声明 Minecraft 与 NeoForge >=26.1 <27，JEI 29.40.0.101、Jade 26.1.10，Java 25。
 - JEI 和/或 Jade 均为可选（装哪个就对哪个生效，都不装也能正常启动）。Gradle 本体使用 JDK 21，26.x 与 26.1 目标通过 Gradle toolchain 使用 Java 25。
 
 仓库在 `server/libs/` 中包含社区版 CraftEngine 26.7.4 JAR，作为可复现构建使用的 `compileOnly` 开发依赖。GitHub Actions 会先校验它的 SHA-256，再用它编译 Paper 插件；该依赖不会被打包进 `Yuan-CE-Bridge`，也不会作为独立 Release 资产发布。实际运行服务器仍需自行安装与服务器版本匹配的 CraftEngine。
@@ -73,9 +74,9 @@ Jade-mc26.1-Fabric-26.1.9.jar       # 26.1
 
 产物在 `client/build/libs/Yuan-CE-Bridge-26.x-*.jar`（26.1 目标为 `client/build/libs/Yuan-CE-Bridge-26.1-*.jar`），丢进对应的 `.minecraft/mods/` 目录。
 
-### client-neoforge/（NeoForge 26.1）
+### client-neoforge/（NeoForge 26.x / 26.1）
 
-和 Fabric 版共用同一份源码，只把入口点与通道注册换成 NeoForge API。它编译时依赖 NeoForge 安装器生成的 patched Minecraft 产物，仓库不附带，构建前先把这些 jar 放进 `client-neoforge/libs/`：
+和 Fabric 版共用同一份源码，只把入口点与通道注册换成 NeoForge API。`26.x` 生成一个覆盖 Minecraft/NeoForge >=26.1 <27 的宽范围产物；`26.1` 保留版本范围受限的产物。当前 `libs/` 中的编译基线仍是 NeoForge 26.1.2.109 / Minecraft 26.1.2。它编译时依赖 NeoForge 安装器生成的 patched Minecraft 产物，仓库不附带，构建前先把这些 jar 放进 `client-neoforge/libs/`：
 
 ```
 neoforge-26.1.2.109-universal.jar        # NeoForge 本体
@@ -116,9 +117,10 @@ client-neoforge 没有自己的 gradle wrapper，借用 `client/` 的：
 ```powershell
 cd client
 ./gradlew -p ../client-neoforge clean build -Ptarget=26.1
+./gradlew -p ../client-neoforge clean build -Ptarget=26.x
 ```
 
-产物在 `client-neoforge/build/libs/Yuan-CE-Bridge-neoforge-26.1-*.jar`，丢进对应的 `.minecraft/mods/` 目录。
+产物在 `client-neoforge/build/libs/Yuan-CE-Bridge-neoforge-<目标>-*.jar`，丢进对应的 `.minecraft/mods/` 目录。
 
 ### protocol/
 
@@ -131,7 +133,7 @@ cd client
 
 - 锻造台的盔甲纹饰配方（trim）不在精确展示范围内——它的产物是运行时按基础盔甲+染料动态合成的，没有单一固定结果可以展示。
 - JEI 的精确展示配方是连接时一次性注册的（`IRecipeManager` 没有对应的移除接口），服务端 CraftEngine 热重载后新增/修改的配方要玩家重新连接才会在 JEI 里刷新。
-- 服务端提供 26.2 与 26.1.2 两个构建目标，Fabric 客户端提供 26.2 与 26.1 两个目标，NeoForge 客户端提供 26.1 目标（三个客户端 26.x/26.1 目标共用同一份源码，仅加载器与编译基线不同）；不提供 1.21.6 或其他 1.21.x 补丁版本兼容承诺。
+- 服务端提供 26.2 与 26.1.2 两个构建目标，Fabric 与 NeoForge 客户端均提供 26.x 与 26.1 两个目标；NeoForge 26.x 以本地 26.1.2 API 编译并声明宽范围兼容，实际 26.2+ 游戏仍需按该目标验收。不提供 1.21.6 或其他 1.21.x 补丁版本兼容承诺。
 - 协议里读的部分 NMS 字段在其他版本可能对不上。
 
 ## 许可证

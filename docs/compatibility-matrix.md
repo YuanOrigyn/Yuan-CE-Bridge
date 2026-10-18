@@ -9,12 +9,14 @@ not a promise that every patch in its manifest range has been tested in-game.
 | Paper bridge | 26.1 | 26.1.2 | 25 | Paperweight dev bundle 26.1.2.build.74-stable; local CraftEngine API jar | server/build/libs/Yuan-CE-Bridge-1.3.7-26.1.jar |
 | Fabric client | 26.x | 26.2 | 25 | Loader 0.19.3; Fabric API 0.155.0+26.2; JEI 30.16.0.131; Jade 26.2.10 | client/build/libs/Yuan-CE-Bridge-26.x-1.2.1.jar |
 | Fabric client | 26.1 | 26.1.2 | 25 | Loader 0.19.3; Fabric API 0.155.3+26.1.2; JEI 29.40.0.101; Jade 26.1.9 | client/build/libs/Yuan-CE-Bridge-26.1-1.2.1.jar |
+| NeoForge client | 26.x | 26.1.2 compile baseline | 25 | NeoForge >=26.1 <27; JEI 29.40.0.101; Jade 26.1.10 | client-neoforge/build/libs/Yuan-CE-Bridge-neoforge-26.x-1.2.1.jar |
 | NeoForge client | 26.1 | 26.1.2 | 25 | NeoForge 26.1.2.109; JEI 29.40.0.101; Jade 26.1.10 | client-neoforge/build/libs/Yuan-CE-Bridge-neoforge-26.1-1.2.1.jar |
 
 ## Metadata contracts
 
 - 26.x client: Minecraft >=26.2 <27, Java >=25, Loader >=0.19.3.
-- 26.1 client: Minecraft >=26.1 <26.2, Java >=25, Loader >=0.19.3 (Fabric) or NeoForge >=26.1.
+- NeoForge 26.x client: Minecraft and NeoForge >=26.1 <27, Java >=25; compiled against the 26.1.2 local API baseline.
+- 26.1 client: Minecraft >=26.1 <26.2, Java >=25, Loader >=0.19.3 (Fabric) or NeoForge >=26.1 <26.2.
 - The client jars do not bundle net/minecraft, net/fabricmc, or mezz/jei
   runtime classes.
 - The server jar is built for two Paperweight targets: 26.2 (26.x) and 26.1.2 (26.1).
